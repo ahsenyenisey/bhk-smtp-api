@@ -1,8 +1,9 @@
-FROM node:20-alpine
-WORKDIR /app
-COPY package.json package-lock.json* ./
+FROM node:22-alpine
+RUN mkdir -p /srv/app && chown node:node /srv/app
+WORKDIR /srv/app
+USER node
+COPY --chown=node:node package.json package-lock.json* ./
 RUN npm install --production
-ARG CACHE_BUST=v3
-COPY server.js ./
+COPY --chown=node:node server.js ./
 EXPOSE 3000
 CMD ["node", "server.js"]
