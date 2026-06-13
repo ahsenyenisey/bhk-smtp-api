@@ -172,6 +172,17 @@ app.get('/health', function (req, res) {
   res.json({ status: 'ok' });
 });
 
+app.get('/whoami', function (req, res) {
+  res.json({
+    service: 'bhk-smtp-api',
+    pid: process.pid,
+    uptime: process.uptime(),
+    port: PORT,
+    version: '1.0.0',
+    timestamp: new Date().toISOString()
+  });
+});
+
 app.listen(PORT, function () {
   console.log('Contact API running on port ' + PORT);
 });
