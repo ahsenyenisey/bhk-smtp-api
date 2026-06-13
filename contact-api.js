@@ -8,7 +8,7 @@ const MAX_TOTAL_SIZE = 18 * 1024 * 1024;
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: MAX_TOTAL_SIZE, files: 5 } });
 
 const app = express();
-const PORT = process.env.PORT || 4500;
+const PORT = process.env.PORT || 3000;
 
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'https://badheizkoerper.shop').split(',');
 const BREVO_API_KEY = process.env.BREVO_API_KEY || '';
