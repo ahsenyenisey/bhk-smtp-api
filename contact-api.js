@@ -125,13 +125,14 @@ app.post('/api/contact', submitLimiter, upload.array('files', 5), async function
     var textBody = rows.map(function(r){return r[0]+': '+r[1];}).join('\n') + '\n\n' + vyntag;
 
     var brevoPayload = {
-      sender: { name: name, email: MAIL_FROM },
+      sender: { name: d.email + ' (' + name + ')', email: MAIL_FROM },
       to: [{ email: MAIL_TO, name: 'Badheizkoerper Support' }],
       replyTo: { email: d.email, name: name },
       subject: subjectLine,
       htmlContent: htmlBody,
       textContent: textBody,
       headers: {
+        'Sender': d.email,
         'X-Contact-Name': name,
         'X-Contact-Email': d.email,
         'X-Contact-Topic': d.anliegen,
