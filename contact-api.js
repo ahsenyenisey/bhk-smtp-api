@@ -10,7 +10,7 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: MAX
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'https://badheizkoerper.shop').split(',');
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'https://badheizkoerper.shop,https://www.badheizkoerper.shop,https://premium-heizungen.myshopify.com').split(',');
 const BREVO_API_KEY = process.env.BREVO_API_KEY || '';
 const MAIL_TO = process.env.MAIL_TO || 'support@badheizkoerper.shop';
 const MAIL_FROM = process.env.MAIL_FROM || 'support@badheizkoerper.shop';

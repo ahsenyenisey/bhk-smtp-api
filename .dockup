@@ -1,6 +1,6 @@
 {
   "projectSlug": "vyndesk-system",
-  "serviceSlug": "bhk-contact-api-4",
+  "serviceSlug": "bhk-smtp-api-2",
   "projectName": "vyndesk-system",
-  "serviceName": "bhk-contact-api-4"
+  "serviceName": "bhk-smtp-api-2"
 }
