@@ -38,8 +38,8 @@ async function getVyndeskToken() {
     body: JSON.stringify({ email: VYNDESK_EMAIL, password: VYNDESK_PASSWORD })
   });
   var d = await r.json();
-  if (d.success && d.data && d.data.token) {
-    vyndeskToken = d.data.token;
+  if (d.success && d.data && d.data.accessToken) {
+    vyndeskToken = d.data.accessToken;
     vyndeskTokenExpires = Date.now() + 3600000;
     return vyndeskToken;
   }
