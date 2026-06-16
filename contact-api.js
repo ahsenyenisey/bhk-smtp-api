@@ -49,22 +49,27 @@ async function getVyndeskToken() {
 async function updateTicketSubject(customerEmail, newSubject) {
   try {
     var token = await getVyndeskToken();
-    if (!token) return;
-    await new Promise(function(ok) { setTimeout(ok, 3000); });
-    var r = await fetch(VYNDESK_API + '/api/tickets?limit=10', {
-      headers: { 'Authorization': 'Bearer ' + token }
-    });
-    var d = await r.json();
-    if (!d.success || !d.data || !d.data.tickets) return;
-    var ticket = d.data.tickets.find(function(t) {
-      return t.requester_email === customerEmail && t.subject && t.subject.indexOf('Neues Ticket') === 0;
-    });
-    if (!ticket) return;
-    await fetch(VYNDESK_API + '/api/tickets/' + ticket.id, {
-      method: 'PUT',
-      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ subject: newSubject })
-    });
+    if (!token) { console.error('Subject update: no token'); return; }
+    for (var attempt = 0; attempt < 3; attempt++) {
+      await new Promise(function(ok) { setTimeout(ok, 5000); });
+      var r = await fetch(VYNDESK_API + '/api/tickets?limit=20', {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      var d = await r.json();
+      if (!d.success || !d.data || !d.data.tickets) continue;
+      var ticket = d.data.tickets.find(function(t) {
+        return t.requester_email === customerEmail && t.subject && t.subject.indexOf('Neues Ticket') === 0;
+      });
+      if (!ticket) continue;
+      var u = await fetch(VYNDESK_API + '/api/tickets/' + ticket.id, {
+        method: 'PUT',
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subject: newSubject })
+      });
+      var ur = await u.json();
+      if (ur.success) { console.log('Subject updated:', newSubject); return; }
+    }
+    console.error('Subject update: ticket not found after 3 attempts');
   } catch (e) {
     console.error('Subject update error:', e.message);
   }
