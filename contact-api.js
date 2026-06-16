@@ -57,11 +57,18 @@ async function updateTicketSubject(customerEmail, newSubject) {
         headers: { 'Authorization': 'Bearer ' + token }
       });
       var d = await r.json();
-      if (!d.success || !d.data || !d.data.tickets) continue;
+      if (!d.success || !d.data || !d.data.tickets) {
+        console.error('Subject update attempt', attempt, ': API error', JSON.stringify(d).substring(0, 200));
+        continue;
+      }
+      console.log('Subject update attempt', attempt, ': got', d.data.tickets.length, 'tickets');
       var ticket = d.data.tickets.find(function(t) {
         return t.requester_email === customerEmail && t.subject && t.subject.indexOf('Neues Ticket') === 0;
       });
-      if (!ticket) continue;
+      if (!ticket) {
+        console.log('Subject update: no match for', customerEmail, '- emails:', d.data.tickets.map(function(t){return t.requester_email}).join(','));
+        continue;
+      }
       var u = await fetch(VYNDESK_API + '/api/tickets/' + ticket.id, {
         method: 'PUT',
         headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
