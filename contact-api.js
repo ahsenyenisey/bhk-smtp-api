@@ -53,7 +53,7 @@ async function updateTicketSubject(customerEmail, newSubject) {
     if (!token) { console.error('Subject update: no token'); return; }
     for (var attempt = 0; attempt < 3; attempt++) {
       await new Promise(function(ok) { setTimeout(ok, 5000); });
-      var r = await fetch(VYNDESK_API + '/api/tickets?limit=20', {
+      var r = await fetch(VYNDESK_API + '/api/tickets?limit=100', {
         headers: { 'Authorization': 'Bearer ' + token }
       });
       var d = await r.json();
@@ -62,9 +62,10 @@ async function updateTicketSubject(customerEmail, newSubject) {
         continue;
       }
       console.log('Subject update attempt', attempt, ': got', d.data.tickets.length, 'tickets');
-      var ticket = d.data.tickets.find(function(t) {
+      var matches = d.data.tickets.filter(function(t) {
         return t.requester_email === customerEmail && t.subject && t.subject.indexOf('Neues Ticket') === 0;
       });
+      var ticket = matches.length > 0 ? matches[matches.length - 1] : null;
       if (!ticket) {
         console.log('Subject update: no match for', customerEmail, '- emails:', d.data.tickets.map(function(t){return t.requester_email}).join(','));
         continue;
