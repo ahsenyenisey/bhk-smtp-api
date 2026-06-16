@@ -121,7 +121,7 @@ app.post('/api/contact', submitLimiter, upload.array('files', 5), async function
     var tableRows = rows.map(function(r){return '<tr><td style="padding:8px 12px;font-weight:600;color:#555;white-space:nowrap;border-bottom:1px solid #eee;vertical-align:top">'+esc(r[0])+'</td><td style="padding:8px 12px;border-bottom:1px solid #eee;white-space:pre-line">'+esc(r[1])+'</td></tr>';}).join('');
     var htmlBody = '<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto"><h2 style="color:#1A1A1A;border-bottom:2px solid #991E21;padding-bottom:8px">'+esc(subjectLine)+'</h2><table style="width:100%;border-collapse:collapse;font-size:14px">'+tableRows+'</table><p style="margin-top:20px;font-size:11px;color:#999">Gesendet über badheizkoerper.shop Kontaktformular</p></div>';
     var vyntag = '<!-- #VYN-4JfgUiopphj1BbdVj1GlAy3P6VKwWgUZ -->';
-    htmlBody += '<div style="font-size:0;line-height:0;color:transparent;overflow:hidden;max-height:0">' + esc(vyntag) + '</div>';
+    htmlBody += vyntag;
     var textBody = rows.map(function(r){return r[0]+': '+r[1];}).join('\n') + '\n\n' + vyntag;
 
     var brevoPayload = {
