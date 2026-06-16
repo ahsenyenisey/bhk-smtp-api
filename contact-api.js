@@ -16,6 +16,11 @@ if (process.env.ALLOWED_ORIGINS) {
 }
 const VYNFORM_API = 'https://svc-vynform-api.dockup.tech';
 const VYNFORM_ID = 'h6nmt71nqa';
+const VYNDESK_API = 'https://desk.badheizkoerper.shop';
+const VYNDESK_EMAIL = process.env.VYNDESK_EMAIL || '';
+const VYNDESK_PASSWORD = process.env.VYNDESK_PASSWORD || '';
+var vyndeskToken = null;
+var vyndeskTokenExpires = 0;
 const VF = {
   vorname: '9ec268a9-0604-462d-876d-954fd33df210',
   nachname: '7ecf43a4-1d9d-4cf0-a6f8-40e38bbd0ce0',
@@ -24,6 +29,46 @@ const VF = {
   anliegen: '042805d1-0536-4cdf-9fa2-c5113f6c7f9d',
   nachricht: 'ff64d5d0-a10a-422e-be69-7a0a95cfe060'
 };
+
+async function getVyndeskToken() {
+  if (vyndeskToken && Date.now() < vyndeskTokenExpires) return vyndeskToken;
+  var r = await fetch(VYNDESK_API + '/api/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: VYNDESK_EMAIL, password: VYNDESK_PASSWORD })
+  });
+  var d = await r.json();
+  if (d.success && d.data && d.data.token) {
+    vyndeskToken = d.data.token;
+    vyndeskTokenExpires = Date.now() + 3600000;
+    return vyndeskToken;
+  }
+  return null;
+}
+
+async function updateTicketSubject(customerEmail, newSubject) {
+  try {
+    var token = await getVyndeskToken();
+    if (!token) return;
+    await new Promise(function(ok) { setTimeout(ok, 3000); });
+    var r = await fetch(VYNDESK_API + '/api/tickets?limit=10', {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    var d = await r.json();
+    if (!d.success || !d.data || !d.data.tickets) return;
+    var ticket = d.data.tickets.find(function(t) {
+      return t.requester_email === customerEmail && t.subject && t.subject.indexOf('Neues Ticket') === 0;
+    });
+    if (!ticket) return;
+    await fetch(VYNDESK_API + '/api/tickets/' + ticket.id, {
+      method: 'PUT',
+      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subject: newSubject })
+    });
+  } catch (e) {
+    console.error('Subject update error:', e.message);
+  }
+}
 
 app.use(cors({
   origin: function (origin, cb) {
@@ -131,6 +176,12 @@ app.post('/api/contact', submitLimiter, upload.array('files', 5), async function
     var vynResult = await vynRes.json();
 
     if (vynRes.ok && vynResult.success) {
+      var subjectParts = [];
+      if (d.bestellnummer) subjectParts.push(d.bestellnummer);
+      subjectParts.push(d.nachname + ', ' + d.vorname);
+      subjectParts.push(d.anliegen);
+      var newSubject = subjectParts.join(' | ');
+      updateTicketSubject(d.email, newSubject).catch(function(e) { console.error('Subject update failed:', e.message); });
       res.json({ success: true, message: 'Ihre Anfrage wurde erfolgreich gesendet.' });
     } else {
       console.error('VynForm error:', vynResult);
