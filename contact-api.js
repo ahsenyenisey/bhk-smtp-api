@@ -17,6 +17,16 @@ if (process.env.ALLOWED_ORIGINS) {
 const BREVO_API_KEY = process.env.BREVO_API_KEY || '';
 const MAIL_TO = process.env.MAIL_TO || 'support@badheizkoerper.shop';
 const MAIL_FROM = process.env.MAIL_FROM || 'support@badheizkoerper.shop';
+const VYNFORM_API = 'https://svc-vynform-api.dockup.tech';
+const VYNFORM_ID = 'h6nmt71nqa';
+const VF = {
+  vorname: '9ec268a9-0604-462d-876d-954fd33df210',
+  nachname: '7ecf43a4-1d9d-4cf0-a6f8-40e38bbd0ce0',
+  email: '1dfcecfa-7bb6-4e2e-8175-87eff7c1b1f0',
+  telefon: '1257f979-3a18-4e2b-ab43-2ba313bb9c1c',
+  anliegen: '042805d1-0536-4cdf-9fa2-c5113f6c7f9d',
+  nachricht: 'ff64d5d0-a10a-422e-be69-7a0a95cfe060'
+};
 
 app.use(cors({
   origin: function (origin, cb) {
@@ -159,10 +169,41 @@ app.post('/api/contact', submitLimiter, upload.array('files', 5), async function
 
     var result = await response.json();
 
-    if (response.ok) {
+    var msgParts = [];
+    if (d.bestellnummer) msgParts.push('Bestellnummer: ' + d.bestellnummer);
+    if (d.firmenname) msgParts.push('Firmenname: ' + d.firmenname);
+    if (d.land) msgParts.push('Land: ' + d.land);
+    if (d.ustid) msgParts.push('USt-ID: ' + d.ustid);
+    if (d.reverseCharge) msgParts.push('Reverse-Charge: Ja');
+    if (d.lieferanschrift) msgParts.push('Lieferanschrift: ' + d.lieferanschrift);
+    if (d.rechnungsanschrift) msgParts.push('Rechnungsanschrift: ' + d.rechnungsanschrift);
+    if (d.warenankunft) msgParts.push('Warenankunft: ' + d.warenankunft);
+    msgParts.push(d.nachricht);
+    var vynMsg = msgParts.join('\n');
+
+    var vynData = {};
+    vynData[VF.vorname] = d.vorname;
+    vynData[VF.nachname] = d.nachname;
+    vynData[VF.email] = d.email;
+    vynData[VF.telefon] = d.telefon || '';
+    vynData[VF.anliegen] = d.anliegen;
+    vynData[VF.nachricht] = vynMsg;
+
+    var vynRes = await fetch(VYNFORM_API + '/api/public/form/' + VYNFORM_ID + '/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data: vynData })
+    });
+    var vynResult = await vynRes.json();
+
+    if (vynRes.ok && vynResult.success) {
+      if (!response.ok) console.error('Brevo error (non-critical):', result);
+      res.json({ success: true, message: 'Ihre Anfrage wurde erfolgreich gesendet.' });
+    } else if (response.ok) {
+      console.error('VynForm error (ticket via email):', vynResult);
       res.json({ success: true, message: 'Ihre Anfrage wurde erfolgreich gesendet.' });
     } else {
-      console.error('Brevo error:', result);
+      console.error('Both failed - Brevo:', result, 'VynForm:', vynResult);
       res.status(500).json({ error: 'Fehler beim Senden. Bitte versuchen Sie es später erneut.' });
     }
 
