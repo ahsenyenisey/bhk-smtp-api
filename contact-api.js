@@ -14,9 +14,6 @@ var ALLOWED_ORIGINS = ['https://badheizkoerper.shop','https://www.badheizkoerper
 if (process.env.ALLOWED_ORIGINS) {
   process.env.ALLOWED_ORIGINS.split(',').forEach(function(o){ if(ALLOWED_ORIGINS.indexOf(o)===-1) ALLOWED_ORIGINS.push(o); });
 }
-const BREVO_API_KEY = process.env.BREVO_API_KEY || '';
-const MAIL_TO = process.env.MAIL_TO || 'support@badheizkoerper.shop';
-const MAIL_FROM = process.env.MAIL_FROM || 'support@badheizkoerper.shop';
 const VYNFORM_API = 'https://svc-vynform-api.dockup.tech';
 const VYNFORM_ID = 'h6nmt71nqa';
 const VF = {
@@ -105,69 +102,6 @@ app.post('/api/contact', submitLimiter, upload.array('files', 5), async function
     if(d.ustid)d.ustid=sanitize(d.ustid);
     if(d.lieferanschrift)d.lieferanschrift=String(d.lieferanschrift||'').trim();
     if(d.rechnungsanschrift)d.rechnungsanschrift=String(d.rechnungsanschrift||'').trim();
-    var name = d.nachname + ', ' + d.vorname;
-    var subjectParts = [];
-    if (d.bestellnummer) subjectParts.push(d.bestellnummer);
-    subjectParts.push(name);
-    subjectParts.push(d.anliegen);
-    var subjectLine = subjectParts.join(' | ');
-
-    function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-    var rows = [];
-    rows.push(['Anliegen', d.anliegen]);
-    if (d.bestellnummer) rows.push(['Bestellnummer', d.bestellnummer]);
-    rows.push(['Name', name]);
-    rows.push(['E-Mail', d.email]);
-    if (d.telefon) rows.push(['Telefon', d.telefon]);
-    if (d.firmenname) rows.push(['Firmenname', d.firmenname]);
-    if (d.land) rows.push(['Land', d.land]);
-    if (d.ustid) rows.push(['USt-ID', d.ustid]);
-    if (d.reverseCharge) rows.push(['Reverse-Charge', 'Ja']);
-    if (d.lieferanschrift) rows.push(['Lieferanschrift', d.lieferanschrift]);
-    if (d.rechnungsanschrift) rows.push(['Rechnungsanschrift', d.rechnungsanschrift]);
-    if (d.warenankunft) rows.push(['Warenankunft', d.warenankunft]);
-    rows.push(['Nachricht', d.nachricht]);
-    rows.push(['Datenschutz-Zustimmung', 'Ja']);
-    var tableRows = rows.map(function(r){return '<tr><td style="padding:8px 12px;font-weight:600;color:#555;white-space:nowrap;border-bottom:1px solid #eee;vertical-align:top">'+esc(r[0])+'</td><td style="padding:8px 12px;border-bottom:1px solid #eee;white-space:pre-line">'+esc(r[1])+'</td></tr>';}).join('');
-    var htmlBody = '<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto"><h2 style="color:#1A1A1A;border-bottom:2px solid #991E21;padding-bottom:8px">'+esc(subjectLine)+'</h2><table style="width:100%;border-collapse:collapse;font-size:14px">'+tableRows+'</table><p style="margin-top:20px;font-size:11px;color:#999">Gesendet über badheizkoerper.shop Kontaktformular</p></div>';
-    var vyntag = '<!-- #VYN-4JfgUiopphj1BbdVj1GlAy3P6VKwWgUZ -->';
-    htmlBody += vyntag;
-    var textBody = rows.map(function(r){return r[0]+': '+r[1];}).join('\n') + '\n\n' + vyntag;
-
-    var brevoPayload = {
-      sender: { name: d.email + ' (' + name + ')', email: MAIL_FROM },
-      to: [{ email: MAIL_TO, name: 'Badheizkoerper Support' }],
-      replyTo: { email: d.email, name: name },
-      subject: subjectLine,
-      htmlContent: htmlBody,
-      textContent: textBody,
-      headers: {
-        'Sender': d.email,
-        'X-Contact-Name': name,
-        'X-Contact-Email': d.email,
-        'X-Contact-Topic': d.anliegen,
-        'X-Contact-Subject': subjectLine
-      }
-    };
-    if (d.telefon) brevoPayload.headers['X-Contact-Phone'] = d.telefon;
-    if (d.bestellnummer) brevoPayload.headers['X-Contact-Order'] = d.bestellnummer;
-    if (req.files && req.files.length > 0) {
-      brevoPayload.attachment = req.files.map(function(f) {
-        return { content: f.buffer.toString('base64'), name: f.originalname };
-      });
-    }
-
-    var response = await fetch('https://api.brevo.com/v3/smtp/email', {
-      method: 'POST',
-      headers: {
-        'accept': 'application/json',
-        'api-key': BREVO_API_KEY,
-        'content-type': 'application/json'
-      },
-      body: JSON.stringify(brevoPayload)
-    });
-
-    var result = await response.json();
 
     var msgParts = [];
     if (d.bestellnummer) msgParts.push('Bestellnummer: ' + d.bestellnummer);
@@ -197,13 +131,9 @@ app.post('/api/contact', submitLimiter, upload.array('files', 5), async function
     var vynResult = await vynRes.json();
 
     if (vynRes.ok && vynResult.success) {
-      if (!response.ok) console.error('Brevo error (non-critical):', result);
-      res.json({ success: true, message: 'Ihre Anfrage wurde erfolgreich gesendet.' });
-    } else if (response.ok) {
-      console.error('VynForm error (ticket via email):', vynResult);
       res.json({ success: true, message: 'Ihre Anfrage wurde erfolgreich gesendet.' });
     } else {
-      console.error('Both failed - Brevo:', result, 'VynForm:', vynResult);
+      console.error('VynForm error:', vynResult);
       res.status(500).json({ error: 'Fehler beim Senden. Bitte versuchen Sie es später erneut.' });
     }
 
@@ -223,7 +153,7 @@ app.get('/whoami', function (req, res) {
     pid: process.pid,
     uptime: process.uptime(),
     port: PORT,
-    version: '1.0.0',
+    version: '2.0.0',
     timestamp: new Date().toISOString()
   });
 });
