@@ -206,7 +206,7 @@ app.get('/whoami', function (req, res) {
     pid: process.pid,
     uptime: process.uptime(),
     port: PORT,
-    version: '2.0.0',
+    version: '3.0.0',
     timestamp: new Date().toISOString()
   });
 });
