@@ -158,6 +158,8 @@ app.post('/api/contact', submitLimiter, upload.array('files', 5), async function
     if (d.rechnungsanschrift) msgParts.push('Rechnungsanschrift: ' + d.rechnungsanschrift);
     if (d.warenankunft) msgParts.push('Warenankunft: ' + d.warenankunft);
     msgParts.push(d.nachricht);
+    var deNow = new Date().toLocaleString('de-DE', { timeZone: 'Europe/Berlin', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    msgParts.push('\nVersendet: ' + deNow);
     var vynMsg = msgParts.join('\n');
 
     var vynData = {};
