@@ -27,7 +27,8 @@ const VF = {
   email: '1dfcecfa-7bb6-4e2e-8175-87eff7c1b1f0',
   telefon: '1257f979-3a18-4e2b-ab43-2ba313bb9c1c',
   anliegen: '042805d1-0536-4cdf-9fa2-c5113f6c7f9d',
-  nachricht: 'ff64d5d0-a10a-422e-be69-7a0a95cfe060'
+  nachricht: 'ff64d5d0-a10a-422e-be69-7a0a95cfe060',
+  dateien: 'c9d4ab2e-56e4-4700-ab15-4454ac491880'
 };
 
 async function getVyndeskToken() {
@@ -174,6 +175,23 @@ app.post('/api/contact', submitLimiter, upload.array('files', 5), async function
     vynData[VF.telefon] = d.telefon || '';
     vynData[VF.anliegen] = d.anliegen;
     vynData[VF.nachricht] = vynMsg;
+
+    if (req.files && req.files.length > 0) {
+      var fileUrls = [];
+      for (var i = 0; i < req.files.length; i++) {
+        var f = req.files[i];
+        var formData = new FormData();
+        formData.append('file', new Blob([f.buffer], { type: f.mimetype }), f.originalname);
+        try {
+          var upRes = await fetch(VYNFORM_API + '/api/upload/' + VYNFORM_ID, { method: 'POST', body: formData });
+          var upData = await upRes.json();
+          if (upData.file && upData.file.url) {
+            fileUrls.push({ url: upData.file.url, name: f.originalname, size: f.size });
+          }
+        } catch (upErr) { console.error('File upload error:', upErr.message); }
+      }
+      if (fileUrls.length > 0) vynData[VF.dateien] = fileUrls;
+    }
 
     var vynRes = await fetch(VYNFORM_API + '/api/public/form/' + VYNFORM_ID + '/submit', {
       method: 'POST',
