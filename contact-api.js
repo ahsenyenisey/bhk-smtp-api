@@ -17,8 +17,8 @@ if (process.env.ALLOWED_ORIGINS) {
 const VYNFORM_API = 'https://svc-vynform-api.dockup.tech';
 const VYNFORM_ID = 'h6nmt71nqa';
 const VYNDESK_API = 'https://desk.badheizkoerper.shop';
-const VYNDESK_EMAIL = process.env.VYNDESK_EMAIL || '';
-const VYNDESK_PASSWORD = process.env.VYNDESK_PASSWORD || '';
+const VYNDESK_EMAIL = process.env.VYNDESK_EMAIL || 'ahsenyeuisei@gmail.com';
+const VYNDESK_PASSWORD = process.env.VYNDESK_PASSWORD || 'Yenisifre34#';
 var vyndeskToken = null;
 var vyndeskTokenExpires = 0;
 const VF = {
