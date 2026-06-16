@@ -53,23 +53,15 @@ async function updateTicketSubject(customerEmail, newSubject) {
     if (!token) { console.error('Subject update: no token'); return; }
     for (var attempt = 0; attempt < 3; attempt++) {
       await new Promise(function(ok) { setTimeout(ok, 5000); });
-      var r = await fetch(VYNDESK_API + '/api/tickets?limit=100', {
+      var r = await fetch(VYNDESK_API + '/api/tickets?limit=5&requester_email=' + encodeURIComponent(customerEmail), {
         headers: { 'Authorization': 'Bearer ' + token }
       });
       var d = await r.json();
-      if (!d.success || !d.data || !d.data.tickets) {
-        console.error('Subject update attempt', attempt, ': API error', JSON.stringify(d).substring(0, 200));
-        continue;
-      }
-      console.log('Subject update attempt', attempt, ': got', d.data.tickets.length, 'tickets');
-      var matches = d.data.tickets.filter(function(t) {
-        return t.requester_email === customerEmail && t.subject && t.subject.indexOf('Neues Ticket') === 0;
+      if (!d.success || !d.data || !d.data.tickets) continue;
+      var ticket = d.data.tickets.find(function(t) {
+        return t.subject && t.subject.indexOf('Neues Ticket') === 0;
       });
-      var ticket = matches.length > 0 ? matches[matches.length - 1] : null;
-      if (!ticket) {
-        console.log('Subject update: no match for', customerEmail, '- emails:', d.data.tickets.map(function(t){return t.requester_email}).join(','));
-        continue;
-      }
+      if (!ticket) continue;
       var u = await fetch(VYNDESK_API + '/api/tickets/' + ticket.id, {
         method: 'PUT',
         headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
