@@ -58,13 +58,11 @@ async function updateTicketSubject(customerEmail, newSubject) {
       });
       var d = await r.json();
       if (!d.success || !d.data || !d.data.tickets) continue;
-      var candidates = d.data.tickets.filter(function(t) {
-        return t.subject && t.subject.indexOf('Neues Ticket') === 0;
+      var fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+      var ticket = d.data.tickets.find(function(t) {
+        return t.subject && t.subject.indexOf('Neues Ticket') === 0 && t.created_at > fiveMinAgo;
       });
-      if (candidates.length === 0) continue;
-      var ticket = candidates.reduce(function(a, b) {
-        return new Date(a.created_at) > new Date(b.created_at) ? a : b;
-      });
+      if (!ticket) continue;
       var u = await fetch(VYNDESK_API + '/api/tickets/' + ticket.id, {
         method: 'PUT',
         headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
