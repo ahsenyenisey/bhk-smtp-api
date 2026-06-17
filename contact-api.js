@@ -47,35 +47,47 @@ async function getVyndeskToken() {
   return null;
 }
 
-async function updateTicketSubject(customerEmail, newSubject) {
+async function fixSubjects() {
   try {
     var token = await getVyndeskToken();
-    if (!token) { console.error('Subject update: no token'); return; }
-    for (var attempt = 0; attempt < 5; attempt++) {
-      await new Promise(function(ok) { setTimeout(ok, 8000); });
-      var r = await fetch(VYNDESK_API + '/api/tickets?limit=5&requester_email=' + encodeURIComponent(customerEmail), {
-        headers: { 'Authorization': 'Bearer ' + token }
-      });
-      var d = await r.json();
-      if (!d.success || !d.data || !d.data.tickets) continue;
-      var fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-      var ticket = d.data.tickets.find(function(t) {
-        return t.subject && t.subject.indexOf('Neues Ticket') === 0 && t.created_at > fiveMinAgo;
-      });
-      if (!ticket) continue;
-      var u = await fetch(VYNDESK_API + '/api/tickets/' + ticket.id, {
+    if (!token) return;
+    var r = await fetch(VYNDESK_API + '/api/tickets?limit=50&search=Neues+Ticket', {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    var d = await r.json();
+    if (!d.success || !d.data || !d.data.tickets) return;
+    var tickets = d.data.tickets.filter(function(t) {
+      return t.subject && t.subject.indexOf('Neues Ticket') === 0 && t.channel === 'vynform';
+    });
+    if (tickets.length === 0) return;
+    for (var i = 0; i < tickets.length; i++) {
+      var t = tickets[i];
+      var desc = t.description || '';
+      var vorname = (desc.match(/Vorname:\s*(.+)/i) || [])[1] || '';
+      var nachname = (desc.match(/Nachname:\s*(.+)/i) || [])[1] || '';
+      var anliegen = (desc.match(/Anliegen auswählen:\s*(.+)/i) || [])[1] || '';
+      var bestellung = (desc.match(/Bestellnummer:\s*(.+)/i) || [])[1] || '';
+      vorname = vorname.trim(); nachname = nachname.trim(); anliegen = anliegen.trim(); bestellung = bestellung.trim();
+      if (!nachname || !anliegen) continue;
+      var parts = [];
+      if (bestellung) parts.push(bestellung);
+      parts.push(nachname + ', ' + vorname);
+      parts.push(anliegen);
+      var newSubject = parts.join(' | ');
+      await fetch(VYNDESK_API + '/api/tickets/' + t.id, {
         method: 'PUT',
         headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
         body: JSON.stringify({ subject: newSubject })
       });
-      var ur = await u.json();
-      if (ur.success) { console.log('Subject updated:', newSubject); return; }
+      console.log('Subject fixed:', newSubject);
     }
-    console.error('Subject update: ticket not found after 3 attempts');
   } catch (e) {
-    console.error('Subject update error:', e.message);
+    console.error('fixSubjects error:', e.message);
   }
 }
+
+setInterval(fixSubjects, 60000);
+setTimeout(fixSubjects, 10000);
 
 app.use(cors({
   origin: function (origin, cb) {
@@ -202,12 +214,6 @@ app.post('/api/contact', submitLimiter, upload.array('files', 5), async function
     var vynResult = await vynRes.json();
 
     if (vynRes.ok && vynResult.success) {
-      var subjectParts = [];
-      if (d.bestellnummer) subjectParts.push(d.bestellnummer);
-      subjectParts.push(d.nachname + ', ' + d.vorname);
-      subjectParts.push(d.anliegen);
-      var newSubject = subjectParts.join(' | ');
-      updateTicketSubject(d.email, newSubject).catch(function(e) { console.error('Subject update failed:', e.message); });
       res.json({ success: true, message: 'Ihre Anfrage wurde erfolgreich gesendet.' });
     } else {
       console.error('VynForm error:', vynResult);
@@ -230,7 +236,7 @@ app.get('/whoami', function (req, res) {
     pid: process.pid,
     uptime: process.uptime(),
     port: PORT,
-    version: '3.0.0',
+    version: '4.0.0',
     timestamp: new Date().toISOString()
   });
 });
