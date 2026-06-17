@@ -51,8 +51,8 @@ async function updateTicketSubject(customerEmail, newSubject) {
   try {
     var token = await getVyndeskToken();
     if (!token) { console.error('Subject update: no token'); return; }
-    for (var attempt = 0; attempt < 3; attempt++) {
-      await new Promise(function(ok) { setTimeout(ok, 5000); });
+    for (var attempt = 0; attempt < 5; attempt++) {
+      await new Promise(function(ok) { setTimeout(ok, 8000); });
       var r = await fetch(VYNDESK_API + '/api/tickets?limit=5&requester_email=' + encodeURIComponent(customerEmail), {
         headers: { 'Authorization': 'Bearer ' + token }
       });
