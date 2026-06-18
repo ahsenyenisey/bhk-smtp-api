@@ -119,7 +119,7 @@ app.get('/api/captcha', function (req, res) {
   var a = 2 + Math.floor(Math.random() * 8);
   var b = 2 + Math.floor(Math.random() * 8);
   var id = crypto.randomBytes(16).toString('hex');
-  captchaStore.set(id, { sum: a + b, expires: Date.now() + 5 * 60 * 1000 });
+  captchaStore.set(id, { sum: a + b, expires: Date.now() + 30 * 60 * 1000 });
   res.json({ id: id, question: a + ' + ' + b + ' = ?' });
 });
 
