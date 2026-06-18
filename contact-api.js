@@ -2,7 +2,6 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
-const crypto = require('crypto');
 const multer = require('multer');
 const MAX_TOTAL_SIZE = 18 * 1024 * 1024;
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: MAX_TOTAL_SIZE, files: 5 } });
@@ -106,40 +105,10 @@ var submitLimiter = rateLimit({
   message: { error: 'Zu viele Anfragen. Bitte versuchen Sie es in einigen Minuten erneut.' }
 });
 
-var captchaStore = new Map();
-
-setInterval(function () {
-  var now = Date.now();
-  captchaStore.forEach(function (val, key) {
-    if (val.expires < now) captchaStore.delete(key);
-  });
-}, 60000);
-
-app.get('/api/captcha', function (req, res) {
-  var a = 2 + Math.floor(Math.random() * 8);
-  var b = 2 + Math.floor(Math.random() * 8);
-  var id = crypto.randomBytes(16).toString('hex');
-  captchaStore.set(id, { sum: a + b, expires: Date.now() + 30 * 60 * 1000 });
-  res.json({ id: id, question: a + ' + ' + b + ' = ?' });
-});
-
 app.post('/api/contact', submitLimiter, upload.array('files', 5), async function (req, res) {
   try {
     var d = req.body;
     if (typeof d === 'string') d = JSON.parse(d);
-
-    if (!d.captchaId || !d.captchaAnswer) {
-      return res.status(400).json({ error: 'Captcha fehlt.' });
-    }
-    var cap = captchaStore.get(d.captchaId);
-    if (!cap) {
-      return res.status(400).json({ error: 'Captcha abgelaufen. Bitte Seite neu laden.' });
-    }
-    if (parseInt(d.captchaAnswer) !== cap.sum) {
-      captchaStore.delete(d.captchaId);
-      return res.status(400).json({ error: 'Captcha falsch.', newCaptcha: true });
-    }
-    captchaStore.delete(d.captchaId);
 
     if (req.files && req.files.length > 0) {
       var totalSize = req.files.reduce(function(sum, f) { return sum + f.size; }, 0);
