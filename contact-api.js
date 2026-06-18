@@ -185,7 +185,7 @@ app.post('/api/contact', submitLimiter, upload.array('files', 5), async function
     vynData[VF.vorname] = d.vorname;
     vynData[VF.nachname] = d.nachname;
     vynData[VF.email] = d.email;
-    if (d.telefon) vynData[VF.telefon] = d.telefon;
+    vynData[VF.telefon] = d.telefon || '-';
     vynData[VF.anliegen] = d.anliegen;
     vynData[VF.nachricht] = vynMsg;
 
