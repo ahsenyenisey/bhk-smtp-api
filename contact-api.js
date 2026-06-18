@@ -86,8 +86,8 @@ async function fixSubjects() {
   }
 }
 
-setInterval(fixSubjects, 60000);
-setTimeout(fixSubjects, 10000);
+setInterval(fixSubjects, 10000);
+setTimeout(fixSubjects, 5000);
 
 app.use(cors({
   origin: function (origin, cb) {
